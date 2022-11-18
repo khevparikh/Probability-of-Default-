@@ -49,34 +49,18 @@ class CorporateDefaultModel:
     
     # Function for imputing (filling in NaN values)
     def impute(self):
-        """
-        WARNING: Since we're averaging over all years, there will be look-ahead
-        bias because if we want to impute a NaN value in 2007, for example, we'd
-        be replacing it with the mean of 2007, 2008, 2009, etc. - data that we
-        wouldn't have available in 2007.
-        """
-        
         # Fields to impute
         fields = ['wc_net', 'asst_tot', 'ebitda', 'eqty_tot', 'cf_operations', 'taxes', \
                   'debt_st', 'debt_lt', 'debt_bank_lt', 'liab_lt', 'liab_lt_emp', 'AP_lt', \
                   'roe', 'roa', 'prof_financing', 'exp_financing']
+        print("Number of fields to impute:", len(fields))
         
-        """
-        For each ATECO sector, compute means of these fields for all companies
-        in that ATECO sector.
-        """
-        ateco_codes = np.unique(self.df["ateco_sector"])
-        ateco_means = self.df.groupby("ateco_sector").mean()[fields]
-        
-        # For each ATECO code
-        for code in ateco_codes:
-            for field in fields:                
-                # Replace NaN with the average value of that field for that specific ATECO code
-                fill_value = ateco_means.loc[code][0]
-                
-                tmp = self.df.loc[self.df["ateco_sector"] == code, field]
-                tmp = tmp.fillna(fill_value)
-                self.df.loc[self.df["ateco_sector"] == code, field] = tmp
+        company_index = self.df.index.map(lambda pair: pair[1])
+        companies = np.unique(company_index)
+            
+        # Impute NaNs based on interpolation method
+        map(lambda company: self.df.loc[company_index == company, fields].interpolate(
+            limit_direction="forward", inplace=True), companies)
     
     # Function for encoding default dates into 1s and 0s
     def date_to_target(self, def_dates):        
@@ -135,9 +119,12 @@ class CorporateDefaultModel:
         X_tests = list(map(lambda t: self.features[fs_year == t+1], train_years))
         y_tests = list(map(lambda t: self.target[fs_year == t+1], train_years))
         
-        print(train_years)
-        print(list(map(lambda X: X.size, y_trains))) 
-        print(list(map(lambda X: X.size, y_tests)))
+        print(list(map(lambda X: np.sum(X.isna()).sum(), X_trains)))
+        print(list(map(lambda X: np.sum(X.isna()).sum(), X_tests)))
+        
+        # print(train_years)
+        # print(list(map(lambda X: X.size, y_trains))) 
+        # print(list(map(lambda X: X.size, y_tests)))
         
         # Train models
         models = list(map(lambda X, y: LogisticRegression().fit(X, y),
@@ -153,11 +140,11 @@ class CorporateDefaultModel:
     def harness(self):
         fields = ['wc_net', 'asst_tot', 'ebitda', 'eqty_tot', 'cf_operations', 'taxes', 'debt_st', 'debt_lt', 'debt_bank_lt', 'liab_lt', 'liab_lt_emp', 'AP_lt', 'roe', 'roa', 'prof_financing', 'exp_financing']
         self.preprocess_data()
-        print(np.count_nonzero(self.df[fields].isna()))
+        #print(np.count_nonzero(self.df[fields].isna()))
         self.impute()
-        print(np.count_nonzero(self.df[fields].isna()))
+        #print(np.count_nonzero(self.df[fields].isna()))
         self.engineer_features()
-        #self.train()
+        self.train()
 
 #%%
 
@@ -168,4 +155,6 @@ print("Reading data... DONE")
 #%%
 
 model = CorporateDefaultModel(df)
-df_new = model.harness()
+model.harness()
+
+X, y = model.features, model.target
