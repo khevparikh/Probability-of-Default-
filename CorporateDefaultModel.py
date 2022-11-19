@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns 
 import matplotlib.pyplot as plt 
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
 
 class CorporateDefaultModel:
     def __init__(self, df):
@@ -97,8 +98,27 @@ class CorporateDefaultModel:
         
         # TO-DO: we may need to add taxes and net profit as features
         pass
+    
+        # Delete rows that have any undefined ratios (infinity or NaN)
+        #
+        # The mask is an array of booleans, such that if mask[i] = True, it means
+        # we delete row i.
+        is_inf = np.isinf(self.features)
+        is_nan = np.isnan(self.features)
+        mask = np.any(np.logical_or(is_inf, is_nan), axis=1)
+        self.features.drop(index=self.features.index[mask], inplace=True)
+        self.target.drop(index=self.target.index[mask], inplace=True)
         
-        return self.features, self.target
+        print("Count number of NaN and infinity values ----------")
+        inf_count = np.count_nonzero(np.isinf(self.features))
+        nan_count = np.count_nonzero(np.isnan(self.features))
+        print("features:", inf_count, nan_count)
+        inf_count = np.count_nonzero(np.isinf(self.target))
+        nan_count = np.count_nonzero(np.isnan(self.target))
+        print("target:", inf_count, nan_count)
+        
+        # Now that we have features for our model, we don't need the original data anymore
+        self.df = None
     
     # Walk-forward analysis
     def train(self):
@@ -110,51 +130,46 @@ class CorporateDefaultModel:
             3) Save the predictions in an array.
             4) Increment t by 1 and repeat steps 1 to 3.
         """
-        fs_year = self.df.index.map(lambda pair: pair[0])
-        train_years = np.unique(fs_year)[:-1]
+        fs_year = self.features.index.map(lambda pair: pair[0])
+        self.years = np.unique(fs_year)[:-1]
         
-        # Partition the dataframe into subsets for training and testing
-        X_trains = list(map(lambda t: self.features[fs_year <= t], train_years))
-        y_trains = list(map(lambda t: self.target[fs_year <= t], train_years))
-        X_tests = list(map(lambda t: self.features[fs_year == t+1], train_years))
-        y_tests = list(map(lambda t: self.target[fs_year == t+1], train_years))
-        
-        print(list(map(lambda X: np.sum(X.isna()).sum(), X_trains)))
-        print(list(map(lambda X: np.sum(X.isna()).sum(), X_tests)))
-        
-        # print(train_years)
-        # print(list(map(lambda X: X.size, y_trains))) 
-        # print(list(map(lambda X: X.size, y_tests)))
+        # Select part of the data for training
+        X_trains = map(lambda t: self.features[fs_year <= t], self.years)
+        y_trains = map(lambda t: self.target[fs_year <= t], self.years)
         
         # Train models
-        models = list(map(lambda X, y: LogisticRegression().fit(X, y),
-                          X_trains, y_trains))
+        self.models = map(lambda X, y: LogisticRegression().fit(X, y), X_trains, y_trains)
         
-        # Predictions
-        predictions = list(map(lambda model, X: model.predict(X),
-                          models, X_tests))
-        
+    # Make predictions using the trained models
     def predict(self):
-        pass
+        fs_year = self.features.index.map(lambda pair: pair[0])
+        
+        # Select part of the data for testing
+        X_tests = map(lambda t: self.features[fs_year == t+1], self.years)
+        y_tests = map(lambda t: self.target[fs_year == t+1], self.years)
+        
+        # Ground truth
+        true = np.hstack(list(y_tests))
+        
+        # Compute predictions
+        pred = map(lambda model, X: model.predict(X), self.models, X_tests)
+        pred = np.hstack(list(pred))
+        return true, pred
     
     def harness(self):
-        fields = ['wc_net', 'asst_tot', 'ebitda', 'eqty_tot', 'cf_operations', 'taxes', 'debt_st', 'debt_lt', 'debt_bank_lt', 'liab_lt', 'liab_lt_emp', 'AP_lt', 'roe', 'roa', 'prof_financing', 'exp_financing']
         self.preprocess_data()
-        #print(np.count_nonzero(self.df[fields].isna()))
         self.impute()
-        #print(np.count_nonzero(self.df[fields].isna()))
         self.engineer_features()
         self.train()
-
-#%%
+        return self.predict()
 
 print("Reading data...")
-df = pd.read_csv("train.csv", nrows=1000)
+df = pd.read_csv("train.csv")
 print("Reading data... DONE")
 
-#%%
-
 model = CorporateDefaultModel(df)
-model.harness()
+true, pred = model.harness()
 
 X, y = model.features, model.target
+
+print(roc_auc_score(true, pred))
