@@ -123,14 +123,15 @@ class CorporateDefaultModel:
         # Now that we have features for our model, we don't need the original data anymore
         self.df = None
         #include this after engineer_features function
-	#def transformation_ratio(self)    
-	#self.df
-	#N=len(df_afterengineerfeatures) #this is after dropping the isna or isinf values 
-	ateco_transf=train.sort_values(by='leverage')
-	ateco_transf
-	#estimate nonlinear curve
-	#Define k buckets
-	#Define a nonlinear curve to map quantiles
+
+#def transformation_ratio(self):    
+#self.df
+#N=len(df_afterengineerfeatures) #this is after dropping the isna or isinf values 
+#ateco_transf=train.sort_values(by='leverage')
+#ateco_transf
+#estimate nonlinear curve
+#Define k buckets
+#Define a nonlinear curve to map quantiles
 
     # Walk-forward analysis
     def train(self):
