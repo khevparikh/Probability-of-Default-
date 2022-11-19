@@ -4,6 +4,11 @@ import numpy as np
 import seaborn as sns 
 import matplotlib.pyplot as plt 
 from sklearn.linear_model import LogisticRegression
+from statsmodels.gam.api import GLMGam, BSplines #GLMGam Generalized Additive Models (GAM)
+from xgboost import XGBClassifier
+from sklearn.svm import SVC
+import statsmodels.api as sms
+from sklearn.pipeline import make_pipeline
 from sklearn.metrics import roc_auc_score
 
 class CorporateDefaultModel:
@@ -152,6 +157,7 @@ class CorporateDefaultModel:
         
         # Train models
         self.models = map(lambda X, y: LogisticRegression().fit(X, y), X_trains, y_trains)
+
         
     # Make predictions using the trained models
     def predict(self):
