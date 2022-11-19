@@ -7,7 +7,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
 class CorporateDefaultModel:
-    def __init__(self, df):
+    def __init__(self):
+        return
+    
+    def load_data(self, df):
         self.df = df
         print("Raw data:", self.df.shape)
     
@@ -167,7 +170,8 @@ print("Reading data...")
 df = pd.read_csv("train.csv")
 print("Reading data... DONE")
 
-model = CorporateDefaultModel(df)
+model = CorporateDefaultModel()
+model.load_data(df)
 true, pred = model.harness()
 
 X, y = model.features, model.target
