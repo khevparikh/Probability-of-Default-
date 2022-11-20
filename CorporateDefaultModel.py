@@ -102,7 +102,7 @@ class CorporateDefaultModel:
         self.features["wc_ta"] = self.df.wc_net / self.df.asst_tot
         self.features["ebit_ta"] = self.df.ebitda / self.df.asst_tot
         self.features["leverage"] = 1 - self.df.eqty_tot / self.df.asst_tot
-        self.features["cf_to_debt"] = (self.df.cf_operations + self.df.taxes) / (self.df.debt_st + self.df.debt_lt)
+        self.features["cf_to_debt"] = self.df.cf_operations / (self.df.debt_st + self.df.debt_lt)
         
         # TO-DO: we may need to add taxes and net profit as features
         pass
