@@ -203,7 +203,8 @@ class CorporateDefaultModel:
         return t, pi_a
 
 print("Reading data...")
-path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
+#path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
+path="train.csv"
 df = pd.read_csv(path)
 
 print("Reading data... DONE")
