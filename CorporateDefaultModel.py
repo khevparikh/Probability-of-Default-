@@ -165,8 +165,9 @@ class CorporateDefaultModel:
         true = np.hstack(list(y_tests))
         
         # Compute predictions
-        pred = map(lambda model, X: model.predict_proba(X), self.models, X_tests)
-        pred = np.concatenate(list(pred))
+        pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index), self.models, X_tests)
+        pred = pd.concat(pred)
+        
         return true, pred
     
     def harness(self):
@@ -186,4 +187,4 @@ true, pred = model.harness()
 
 X, y = model.features, model.target
 
-print("AUC =", roc_auc_score(true, pred[:, 1]))
+print("AUC =", roc_auc_score(true, pred.iloc[:, 1]))
