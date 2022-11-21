@@ -165,12 +165,19 @@ class CorporateDefaultModel:
         X_tests = map(lambda t: self.features[fs_year == t+1], self.years)
         y_tests = map(lambda t: self.target[fs_year == t+1], self.years)
         
-        # Ground truth
-        true = np.hstack(list(y_tests))
+        # Aggregate ground truth values for each company
+        # For each company, the last value tells us whether the company ultimately defaulted
+        true = pd.concat(y_tests).reorder_levels(["id", "fs_year"]).sort_index()
+        true = true.groupby(level="id").last()
         
-        # Compute predictions
+        # Compute predictions for each row
         pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index), self.models, X_tests)
         pred = pd.concat(pred)
+        
+        # Aggregate these predictions to generate a default probability for each company
+        # For each company, we just predict the most recent probability
+        pred = pred.reorder_levels(["id", "fs_year"]).sort_index()
+        pred = pred.groupby(level="id").last()
         
         return true, pred
 
