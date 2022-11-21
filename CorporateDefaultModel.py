@@ -110,7 +110,7 @@ class CorporateDefaultModel:
         # TO-DO: we may need to add taxes and net profit as features
         pass
     
-        # Delete rows that have any undefined ratios (infinity or NaN)
+        # Delete rows that have any undefined ratios (infinity or NaN); need to fix this
         #
         # The mask is an array of booleans, such that if mask[i] = True, it means
         # we delete row i.
@@ -146,7 +146,7 @@ class CorporateDefaultModel:
             4) Increment t by 1 and repeat steps 1 to 3.
         """
         fs_year = self.features.index.map(lambda pair: pair[0])
-        self.years = np.unique(fs_year)[:-1]
+        self.years = np.unique(fs_year)[:-1] #list of all years besides last one for mapping purpose
         
         # Select part of the data for training
         X_trains = map(lambda t: self.features[fs_year <= t], self.years)
@@ -158,6 +158,7 @@ class CorporateDefaultModel:
         
     # Make predictions using the trained models
     def predict(self):
+        #self.features: dataframe of features that will be used by the model
         fs_year = self.features.index.map(lambda pair: pair[0])
         
         # Select part of the data for testing
@@ -172,22 +173,38 @@ class CorporateDefaultModel:
         pred = pd.concat(pred)
         
         return true, pred
+
+    def calibration(self, pred):
+        #baseline default rate ranging from 0.5 to 15%
+        pi_sample=self.target.mean()
+        pi_true=0.005
+        #t,pred=self.predict()
+        pi_adjusted=pred.apply(lambda x: (pi_true/pi_sample)*(x))
+
+        #Elkan_calibration
+        #pi_adjusted_el=(pi_true)*(pred - (pred*pi_sample))/(pi_sample-(pred*pi_sample)+(pred*pi_true)-(pi_sample*pi_true))
+
+        return pi_adjusted
     
     def harness(self):
         self.preprocess_data()
         self.impute()
         self.engineer_features()
         self.train()
-        return self.predict()
+        t,p=self.predict()
+        pi_a=self.calibration(p)
+        return t, pi_a
 
 print("Reading data...")
-df = pd.read_csv("train.csv")
+path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
+df = pd.read_csv(path)
+
 print("Reading data... DONE")
 
 model = CorporateDefaultModel()
 model.load_data(df)
-true, pred = model.harness()
+t, pi_adjusted = model.harness()
 
 X, y = model.features, model.target
 
-print("AUC =", roc_auc_score(true, pred.iloc[:, 1]))
+print("AUC =", roc_auc_score(t, pi_adjusted.iloc[:, 1]))
