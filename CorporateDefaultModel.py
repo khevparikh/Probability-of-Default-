@@ -91,8 +91,11 @@ class CorporateDefaultModel:
         the moment that y_t changes from 0 to 1, it will always remain 1.
         """
         
-        return np.logical_and(def_dates.notna(),
-                              self.df["fs_year"] + 1 >= def_dates.dt.year).astype(int)
+        result = np.logical_and(def_dates.notna(),
+                                self.df["fs_year"] + 1 >= def_dates.dt.year).astype(int)
+        
+        target_index = pd.MultiIndex.from_frame(self.df[["fs_year", "id"]])
+        return pd.Series(result.values, index=target_index)
     
     def engineer_features(self):
         # Create a dataframe of features that will be used by the model
