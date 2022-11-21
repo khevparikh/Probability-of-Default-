@@ -115,8 +115,9 @@ class CorporateDefaultModel:
         """
         self.features["profit"] = self.df.profit
         
-        # TO-DO: we may need to add taxes and net profit as features
-        pass
+        # Try adding some more features to see if they help
+        self.features["log_AP_st"] = np.log(self.df.AP_st)
+        self.features["log_current_asst"] = np.log(self.df.asst_current)
         
         # TODO: We can't just delete rows, we need to deal with those companies
         # in specific ways. We must output a probability for every company.
