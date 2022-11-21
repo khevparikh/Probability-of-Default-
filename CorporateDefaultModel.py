@@ -109,6 +109,12 @@ class CorporateDefaultModel:
         self.features["leverage"] = 1 - self.df.eqty_tot / self.df.asst_tot
         self.features["cf_to_debt"] = self.df.cf_operations / (self.df.debt_st + self.df.debt_lt)
         
+        """
+        Suggested by Khevna - she found a 16% difference in median profit
+        between defaulting and nondefaulting firms.
+        """
+        self.features["profit"] = self.df.profit
+        
         # TO-DO: we may need to add taxes and net profit as features
         pass
         
