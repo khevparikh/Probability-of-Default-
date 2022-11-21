@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt 
 from sklearn.linear_model import LogisticRegression
 from statsmodels.gam.api import GLMGam, BSplines #GLMGam Generalized Additive Models (GAM)
-from xgboost import XGBClassifier
+#from xgboost import XGBClassifier
 from sklearn.svm import SVC
 import statsmodels.api as sms
 from sklearn.pipeline import make_pipeline
@@ -52,6 +52,8 @@ class CorporateDefaultModel:
         it the index.
         """
         self.df.set_index(["fs_year", "id"], inplace=True)
+        
+        print("Number of companies in dataset:", self.df.index.map(lambda pair: pair[1]).nunique())
         
         # Dimensions of the new preprocessed data
         print("Preprocessed data:", self.df.shape)
@@ -109,8 +111,9 @@ class CorporateDefaultModel:
         
         # TO-DO: we may need to add taxes and net profit as features
         pass
-    
-        # Delete rows that have any undefined ratios (infinity or NaN); need to fix this
+        
+        # TODO: We can't just delete rows, we need to deal with those companies
+        # in specific ways. We must output a probability for every company.
         #
         # The mask is an array of booleans, such that if mask[i] = True, it means
         # we delete row i.
