@@ -21,20 +21,22 @@ class CorporateDefaultModel:
     
     def preprocess_data(self):
         """
-        pandas indexes the dataframe automatically, so we can remove the Unnamed column.
+        This function ...
         
-        We remove the column eqty_corp_family_tot because it is all NaNs.
+        
         """
-        self.df.drop(columns = ['Unnamed: 0', 'eqty_corp_family_tot'], inplace=True)
+        # pandas indexes the dataframe automatically, so we can remove the Unnamed column.
+        # We remove the column eqty_corp_family_tot because it is all NaNs.
+        # Drop statement date because fs_year already contains that information
+        # All statement dates are 12/31, which doesn't tell us anything new
+        
+        self.df.drop(columns = ['Unnamed: 0', 'eqty_corp_family_tot', 'stmt_date'], inplace=True)
         
         # Sort the data by company ID and fiscal year to prevent potential look-ahead bias
         self.df.sort_values(["fs_year", "id"], inplace=True)
         self.df.reset_index(drop=True, inplace=True)
         
-        # Drop statement date because fs_year already contains that information
-        # All statement dates are 12/31, which doesn't tell us anything new
-        self.df.drop(columns=["stmt_date"], inplace=True)
-        
+             
         # Cast default date to datetime type
         self.df["def_date"] = pd.to_datetime(self.df["def_date"])
         
