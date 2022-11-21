@@ -117,13 +117,7 @@ class CorporateDefaultModel:
         self.features.drop(index=self.features.index[mask], inplace=True)
         self.target.drop(index=self.target.index[mask], inplace=True)
         
-        print("Count number of NaN and infinity values ----------")
-        inf_count = np.count_nonzero(np.isinf(self.features))
-        nan_count = np.count_nonzero(np.isnan(self.features))
-        print("features:", inf_count, nan_count)
-        inf_count = np.count_nonzero(np.isinf(self.target))
-        nan_count = np.count_nonzero(np.isnan(self.target))
-        print("target:", inf_count, nan_count)
+        print("Dropping {} rows".format(np.count_nonzero(mask)))
         
         # Now that we have features for our model, we don't need the original data anymore
         self.df = None
@@ -171,8 +165,8 @@ class CorporateDefaultModel:
         true = np.hstack(list(y_tests))
         
         # Compute predictions
-        pred = map(lambda model, X: model.predict(X), self.models, X_tests)
-        pred = np.hstack(list(pred))
+        pred = map(lambda model, X: model.predict_proba(X), self.models, X_tests)
+        pred = np.concatenate(list(pred))
         return true, pred
     
     def harness(self):
@@ -192,4 +186,4 @@ true, pred = model.harness()
 
 X, y = model.features, model.target
 
-print(roc_auc_score(true, pred))
+print("AUC =", roc_auc_score(true, pred[:, 1]))
