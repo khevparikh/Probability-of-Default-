@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt 
 from sklearn.linear_model import LogisticRegression
 from statsmodels.gam.api import GLMGam, BSplines #GLMGam Generalized Additive Models (GAM)
-#from xgboost import XGBClassifier
+from xgboost import XGBClassifier
 from sklearn.svm import SVC
 import statsmodels.api as sms
 from sklearn.pipeline import make_pipeline
@@ -108,16 +108,14 @@ class CorporateDefaultModel:
         self.features["ebit_ta"] = self.df.ebitda / self.df.asst_tot
         self.features["leverage"] = 1 - self.df.eqty_tot / self.df.asst_tot
         self.features["cf_to_debt"] = self.df.cf_operations / (self.df.debt_st + self.df.debt_lt)
+        self.features["log_AP_st"] = np.log(self.df.AP_st)
+        self.features["ST_debt_to_cur_asst"] = self.df.debt_st / self.df.asst_current
         
         """
         Suggested by Khevna - she found a 16% difference in median profit
         between defaulting and nondefaulting firms.
         """
-        self.features["profit"] = self.df.profit
-        
-        # Try adding some more features to see if they help
-        self.features["log_AP_st"] = np.log(self.df.AP_st)
-        self.features["log_current_asst"] = np.log(self.df.asst_current)
+        self.features["financial_profit"] = self.df.prof_financing
         
         # TODO: We can't just delete rows, we need to deal with those companies
         # in specific ways. We must output a probability for every company.
@@ -163,8 +161,9 @@ class CorporateDefaultModel:
         y_trains = map(lambda t: self.target[fs_year <= t], self.years)
         
         # Train models
-        self.models = map(lambda X, y: LogisticRegression().fit(X, y), X_trains, y_trains)
-
+        self.models = map(lambda X, y: XGBClassifier().fit(X, y), X_trains, y_trains)
+        
+        #self.models = map(lambda X, y: LogisticRegression().fit(X, y), X_trains, y_trains)
         
     # Make predictions using the trained models
     def predict(self):
