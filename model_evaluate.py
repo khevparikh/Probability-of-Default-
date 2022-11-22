@@ -12,7 +12,11 @@ filehandler = open("trained_model.obj", 'rb')
 model = dill.load(filehandler)
 
 # Use the model to make predictions on the input data
-pi_adjusted = model.predict_harness(test)
+true, pi_adjusted = model.predict_harness(test)
+
+AUC_score=roc_auc_score(true, pi_adjusted)
+
+print('AUC score:', AUC_score)
 
 print(pi_adjusted)
 
