@@ -173,7 +173,7 @@ class CorporateDefaultModel:
         pred = pred.reorder_levels(["id", "fs_year"]).sort_index()
         pred = pred.groupby(level="id").last()
         
-        return true, pred
+        return true, pred.iloc[:, 1]
         
     def calibration(self, pred):
         # ACPMIP p. 220
