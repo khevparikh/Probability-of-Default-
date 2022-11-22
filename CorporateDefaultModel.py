@@ -126,16 +126,27 @@ class CorporateDefaultModel:
         #
         # The mask is an array of booleans, such that if mask[i] = True, it means
         # we delete row i.
+        self.features.replace([np.inf, -np.inf], np.nan, inplace=True)
         is_inf = np.isinf(self.features)
         is_nan = np.isnan(self.features)
+
+        self.features.ffill(axis=0, inplace=True)
         mask = np.any(np.logical_or(is_inf, is_nan), axis=1)
-        self.features.drop(index=self.features.index[mask], inplace=True)
-        self.target.drop(index=self.target.index[mask], inplace=True)
+        reordered_mask=pd.DataFrame(mask).reorder_levels(["id", "fs_year"]).sort_index()
+        for col in list(reordered_mask.columns):
+            reordered_mask[col]=reordered_mask.groupby('id')[col].transform(lambda x: x.ffill())
+
+        print(reordered_mask)
+        #Impute the value for the specific company id; idea: forward fill (from the previous year)? 
+        #Reorder index as id, fs_year to do this
         
-        print("Dropping {} rows".format(np.count_nonzero(mask)))
+        #print('line 136:', reordered_mask)
+        
+        #print("Dropping {} rows".format(np.count_nonzero(mask)))
         
         # Now that we have features for our model, we don't need the original data anymore
         self.df = None
+
         #include this after engineer_features function
 
 #def transformation_ratio(self):    
@@ -196,12 +207,13 @@ class CorporateDefaultModel:
     def calibration(self, pred):
         #baseline default rate ranging from 0.5 to 15%
         pi_sample=self.target.mean()
+        print("Sample default rate:", pi_sample)
         pi_true=0.005
         #t,pred=self.predict()
         pi_adjusted=pred.apply(lambda x: (pi_true/pi_sample)*(x))
 
         #Elkan_calibration
-        #pi_adjusted_el=(pi_true)*(pred - (pred*pi_sample))/(pi_sample-(pred*pi_sample)+(pred*pi_true)-(pi_sample*pi_true))
+        pi_adjusted_el=pred.apply(lambda x:(pi_true)*(x - (x*pi_sample))/(pi_sample-(x*pi_sample)+(x*pi_true)-(pi_sample*pi_true)))
 
         return pi_adjusted
     
@@ -215,16 +227,17 @@ class CorporateDefaultModel:
         return t, pi_a
 
 print("Reading data...")
-#path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
-path="train.csv"
+path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
+#path="train.csv"
 df = pd.read_csv(path)
 
 print("Reading data... DONE")
 
 model = CorporateDefaultModel()
 model.load_data(df)
-t, pi_adjusted = model.harness()
+t, pi_adjusted= model.harness()
 
 X, y = model.features, model.target
 
 print("AUC =", roc_auc_score(t, pi_adjusted.iloc[:, 1]))
+
