@@ -9,7 +9,6 @@ from xgboost import XGBClassifier
 from sklearn.svm import SVC
 import statsmodels.api as sms
 from sklearn.pipeline import make_pipeline
-from sklearn.metrics import roc_auc_score
 
 class CorporateDefaultModel:
     def __init__(self):
@@ -65,8 +64,6 @@ class CorporateDefaultModel:
         it the index.
         """
         data.set_index(["fs_year", "id"], inplace=True)
-        
-        print("Number of companies in dataset:", data.index.map(lambda pair: pair[1]).nunique())
     
     # Function for imputing (filling in NaN values)
     def impute(self, data):
@@ -74,7 +71,6 @@ class CorporateDefaultModel:
         fields = ['wc_net', 'asst_tot', 'ebitda', 'eqty_tot', 'cf_operations', 'taxes', \
                   'debt_st', 'debt_lt', 'debt_bank_lt', 'liab_lt', 'liab_lt_emp', 'AP_lt', \
                   'roe', 'roa', 'prof_financing', 'exp_financing']
-        print("Number of fields to impute:", len(fields))
         
         company_index = data.index.map(lambda pair: pair[1])
         companies = np.unique(company_index)
@@ -167,7 +163,8 @@ class CorporateDefaultModel:
         true = true.groupby(level="id").last()
         
         # Compute predictions for each row
-        pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index), self.models, X_tests)
+        pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index),
+                   self.models, X_tests)
         pred = list(pred)
         pred = pd.concat(pred)
         
@@ -183,9 +180,7 @@ class CorporateDefaultModel:
         #
         # Baseline default rate ranging from 0.5 to 15%
         pi_sample = self.train_target.mean()
-        print("Sample default rate:", pi_sample)
         pi_true = 0.005
-        print("calibration : pred =\n", pred)
         pi_adjusted = pred.apply(lambda x: (pi_true/pi_sample)*x)
         
         # Elkan_calibration
@@ -212,17 +207,4 @@ class CorporateDefaultModel:
         true, pred = self.predict(features, target)
         
         # Calibrate the probabilities
-        return true, self.calibration(pred)
-
-print("Reading data...")
-#path=r"/Users/anthonychen/Desktop/ML_Finance/train.csv"
-path="train.csv"
-df = pd.read_csv(path)
-print("Reading data... DONE")
-
-train = df.iloc[0:1_000_000, :]
-test = df.iloc[1_000_000:, :]
-model = CorporateDefaultModel()
-model.train_harness(train)
-true, pi_adjusted = model.predict_harness(test)
-print("AUC =", roc_auc_score(true, pi_adjusted.iloc[:, 1]))
+        return self.calibration(pred)
