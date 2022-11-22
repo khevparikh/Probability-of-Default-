@@ -15,3 +15,5 @@ model = dill.load(filehandler)
 pi_adjusted = model.predict_harness(test)
 
 print(pi_adjusted)
+
+pi_adjusted.to_csv("predictions.csv")
