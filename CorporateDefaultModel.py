@@ -34,9 +34,6 @@ class CorporateDefaultModel:
         # Cast ATECO sector from float to integer
         data["ateco_sector"] = data["ateco_sector"].astype(int)
         
-        # TO-DO: preprocess industry ATECO sector (look at the manuals Roger gave us)
-        pass
-    
         # Convert default dates into indicator targets
         """
         In Italy, the fiscal period is 1/1 to 12/31. We assume that we sit
@@ -100,11 +97,7 @@ class CorporateDefaultModel:
         """
         features["financial_profit"] = data.prof_financing
         
-        # TODO: We can't just delete rows, we need to deal with those companies
-        # in specific ways. We must output a probability for every company.
-        #
-        # The mask is an array of booleans, such that if mask[i] = True, it means
-        # we delete row i.
+        # Forward-fill NaNs
         features.replace([np.inf, -np.inf], np.nan, inplace=True)
         is_inf = np.isinf(features)
         is_nan = np.isnan(features)
