@@ -109,7 +109,7 @@ class CorporateDefaultModel:
             reordered_mask[col]=reordered_mask.groupby('id')[col].transform(lambda x: x.ffill())
         
         num_companies = features.index.map(lambda pair: pair[1]).nunique()
-        print("Number of companies:", num_companies)
+        print("Number of companies in dataset:", num_companies)
 
         return features, target
 
@@ -124,11 +124,11 @@ class CorporateDefaultModel:
             4) Increment t by 1 and repeat steps 1 to 3.
         """
         fs_year = features.index.map(lambda pair: pair[0])
-        self.years = np.unique(fs_year)#[:-1] #list of all years besides last one for mapping purpose
+        train_years = np.unique(fs_year)
         
         # Select part of the data for training
-        X_trains = list(map(lambda t: features[fs_year <= t], self.years))
-        y_trains = list(map(lambda t: target[fs_year <= t], self.years))
+        X_trains = list(map(lambda t: features[fs_year <= t], train_years))
+        y_trains = list(map(lambda t: target[fs_year <= t], train_years))
         
         # Train models
         self.models = map(lambda X, y: XGBClassifier().fit(X, y), X_trains, y_trains)
@@ -145,24 +145,13 @@ class CorporateDefaultModel:
         
         #features: dataframe of features that will be used by the model
         fs_year = features.index.map(lambda pair: pair[0])
-        years = np.unique(fs_year)
-        print("train years:", self.years)
-        print("test years:", years)
+        test_years = np.unique(fs_year)
 
         # Select part of the data for testing
-        X_tests = []
-        y_tests = []
-        num = 0
-        for t in years:
-            tmp = features[fs_year == t]
-            print("Data from year {}: {}".format(t, tmp.shape))
-            print(tmp.index[0])
-            num += tmp.index.map(lambda pair: pair[1]).nunique()
-            print("num companies in test:", num)
-            X_tests.append(tmp)
-            
-            tmp = target[fs_year == t]
-            y_tests.append(tmp)
+        X_tests = map(lambda t: features[fs_year == t], test_years)
+        X_tests = list(X_tests)
+        y_tests = map(lambda t: target[fs_year == t], test_years)
+        y_tests = list(y_tests)
 
         # Aggregate ground truth values for each company
         # For each company, the last value tells us whether the company ultimately defaulted
@@ -180,7 +169,6 @@ class CorporateDefaultModel:
         # For each company, we just predict the most recent probability
         pred = pred.reorder_levels(["id", "fs_year"]).sort_index()
         pred = pred.groupby(level="id").last()
-        print("pred =", pred.shape)
         return true, pred.iloc[:, 1]
     
     # A function that consolidates all steps needed for training
