@@ -1,4 +1,4 @@
-# Run as: python model_evaluate.py <input data csv> <trained model>
+# Run as: python model_evaluate.py <trained model> <input data csv>
 
 import pandas as pd
 from CorporateDefaultModel import CorporateDefaultModel
@@ -7,10 +7,10 @@ import pickle
 import sys
 from sklearn.metrics import roc_auc_score
 
-test = pd.read_csv(sys.argv[1])
+test = pd.read_csv(sys.argv[2])
 
 # Load the pre-trained model
-filehandler = open(sys.argv[2], 'rb')
+filehandler = open(sys.argv[1], 'rb')
 model = dill.load(filehandler)
 
 # Use the model to make predictions on the input data
