@@ -158,6 +158,7 @@ class CorporateDefaultModel:
         true = pd.concat(y_tests)
         true = true.reorder_levels(["id", "fs_year"]).sort_index()
         true = true.groupby(level="id").last()
+        print("true =", true.shape)
         
         # Compute predictions for each row
         pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index),
@@ -169,7 +170,12 @@ class CorporateDefaultModel:
         # For each company, we just predict the most recent probability
         pred = pred.reorder_levels(["id", "fs_year"]).sort_index()
         pred = pred.groupby(level="id").last()
-        return true, pred.iloc[:, 1]
+        print("pred =", pred.shape)
+
+        # We now have an array of probabilities of nondefault (class 0) and default (class 1).
+        # We only want to return the probabilities of default (class 1).
+        pred = pred.iloc[:, 1]
+        return true, pred
     
     # A function that consolidates all steps needed for training
     def train_harness(self, train):
