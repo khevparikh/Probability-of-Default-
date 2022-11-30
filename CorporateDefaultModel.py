@@ -108,6 +108,9 @@ class CorporateDefaultModel:
         for col in list(reordered_mask.columns):
             reordered_mask[col]=reordered_mask.groupby('id')[col].transform(lambda x: x.ffill())
         
+        num_companies = features.index.map(lambda pair: pair[1]).nunique()
+        print("Number of companies in dataset:", num_companies)
+
         return features, target
 
     # Walk-forward analysis
@@ -121,12 +124,12 @@ class CorporateDefaultModel:
             4) Increment t by 1 and repeat steps 1 to 3.
         """
         fs_year = features.index.map(lambda pair: pair[0])
-        self.years = np.unique(fs_year)[:-1] #list of all years besides last one for mapping purpose
+        train_years = np.unique(fs_year)
         
         # Select part of the data for training
-        X_trains = list(map(lambda t: features[fs_year <= t], self.years))
-        y_trains = list(map(lambda t: target[fs_year <= t], self.years))
-                
+        X_trains = list(map(lambda t: features[fs_year <= t], train_years))
+        y_trains = list(map(lambda t: target[fs_year <= t], train_years))
+        
         # Train models
         self.models = map(lambda X, y: XGBClassifier().fit(X, y), X_trains, y_trains)
         #self.models = list(map(lambda X, y: LogisticRegression().fit(X, y), X_trains, y_trains))
@@ -142,18 +145,20 @@ class CorporateDefaultModel:
         
         #features: dataframe of features that will be used by the model
         fs_year = features.index.map(lambda pair: pair[0])
-        
+        test_years = np.unique(fs_year)
+
         # Select part of the data for testing
-        X_tests = map(lambda t: features[fs_year == t+1], self.years)
+        X_tests = map(lambda t: features[fs_year == t], test_years)
         X_tests = list(X_tests)
-        y_tests = map(lambda t: target[fs_year == t+1], self.years)
+        y_tests = map(lambda t: target[fs_year == t], test_years)
         y_tests = list(y_tests)
-        
+
         # Aggregate ground truth values for each company
         # For each company, the last value tells us whether the company ultimately defaulted
         true = pd.concat(y_tests)
         true = true.reorder_levels(["id", "fs_year"]).sort_index()
         true = true.groupby(level="id").last()
+        print("true =", true.shape)
         
         # Compute predictions for each row
         pred = map(lambda model, X: pd.DataFrame(model.predict_proba(X), index=X.index),
@@ -165,8 +170,12 @@ class CorporateDefaultModel:
         # For each company, we just predict the most recent probability
         pred = pred.reorder_levels(["id", "fs_year"]).sort_index()
         pred = pred.groupby(level="id").last()
-        
-        return true, pred.iloc[:, 1]
+        print("pred =", pred.shape)
+
+        # We now have an array of probabilities of nondefault (class 0) and default (class 1).
+        # We only want to return the probabilities of default (class 1).
+        pred = pred.iloc[:, 1]
+        return true, pred
     
     # A function that consolidates all steps needed for training
     def train_harness(self, train):
